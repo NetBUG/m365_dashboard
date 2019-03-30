@@ -4,7 +4,7 @@ bool displayClear(byte ID = 1, bool force = false) {
   volatile static byte oldID = 0;
 
   if ((oldID != ID) || force) {
-    display.clear();
+    lcd.clear();
     oldID = ID;
     return true;
   } else return false;
@@ -42,20 +42,8 @@ void setup() {
     EEPROM.put(8, cfgKERS);
   }
 
-#ifdef DISPLAY_I2C
-  Wire.begin();
-  Wire.setClock(400000L);
-  display.begin(&Adafruit128x64, 0x3C);
-#endif
-#ifdef DISPLAY_SPI
-  display.begin(&Adafruit128x64, PIN_CS, PIN_DC, PIN_RST);
-#endif
   
-  display.setFont(m365);
-  displayClear(0, true);
-  display.setCursor(0, 0);
-  display.print((char)0x20);
-  display.setFont(defaultFont);
+  lcd.begin(16,2);
 
   unsigned long wait = millis() + 2000;
   while ((wait > millis()) || ((wait - 1000 > millis()) && (S25C31.current != 0) && (S25C31.voltage != 0) && (S25C31.remainPercent != 0))) {
@@ -65,15 +53,12 @@ void setup() {
   }
 
   if ((S25C31.current == 0) && (S25C31.voltage == 0) && (S25C31.remainPercent == 0)) {
-    displayClear(1);
-    display.set2X();
-    display.setCursor(0, 0);
-    display.println((const __FlashStringHelper *) noBUS1);
-    display.println((const __FlashStringHelper *) noBUS2);
-    display.println((const __FlashStringHelper *) noBUS3);
-    display.println((const __FlashStringHelper *) noBUS4);
-    display.set1X();
-  } else displayClear(1);
+    lcd.setCursor(0, 0);
+    lcd.println((const __FlashStringHelper *) noBUS1);
+    lcd.println((const __FlashStringHelper *) noBUS2);
+    lcd.println((const __FlashStringHelper *) noBUS3);
+    lcd.println((const __FlashStringHelper *) noBUS4);
+  } else lcd.clear();
 
   WDTcounts = 0;
   WatchDog::init(WDTint_, 500);
@@ -96,85 +81,74 @@ void loop() { //cycle time w\o data exchange ~8 us :)
 }
 
 void showBatt(int percent, bool blinkIt) {
-  display.set1X();
-  display.setFont(defaultFont);
-  display.setCursor(0, 7);
+  lcd.setCursor(12, 1);
   if (bigWarn || (warnBatteryPercent == 0) || (percent > warnBatteryPercent) || ((warnBatteryPercent != 0) && (millis() % 1000 < 500))) {
-    display.print((char)0x81);
+    lcd.print((char)0x81);
     for (int i = 0; i < 19; i++) {
-      display.setCursor(5 + i * 5, 7);
+      lcd.setCursor(13, 1);
       if (blinkIt && (millis() % 1000 < 500))
-        display.print((char)0x83);
+        lcd.print((char)0x83);
         else
         if (float(19) / 100 * percent > i)
-          display.print((char)0x82);
+          lcd.print((char)0x82);
           else
-          display.print((char)0x83);
+          lcd.print((char)0x83);
     }
-    display.setCursor(99, 7);
-    display.print((char)0x84);
-    if (percent < 100) display.print(' ');
-    if (percent < 10) display.print(' ');
-    display.print(percent);
-    display.print('\%');
+    lcd.setCursor(12, 0);
+    lcd.print((char)0x84);
+    if (percent < 10) lcd.print(' ');
+    lcd.print(percent);
+    lcd.print('\%');
   } else
   for (int i = 0; i < 34; i++) {
-    display.setCursor(i * 5, 7);
-    display.print(' ');
+    lcd.setCursor(12, 1);
+    lcd.print(' ');
   }
 }
 
 void fsBattInfo() {
-  displayClear(6);
-
+  lcd.clear();
+  
   int tmp_0, tmp_1;
 
-  display.setCursor(0, 0);
-  display.set1X();
+  lcd.setCursor(0, 0);
 
   tmp_0 = abs(S25C31.voltage) / 100;         //voltage
   tmp_1 = abs(S25C31.voltage) % 100;
 
-  if (tmp_0 < 10) display.print(' ');
-  display.print(tmp_0);
-  display.print('.');
-  if (tmp_1 < 10) display.print('0');
-  display.print(tmp_1);
-  display.print((const __FlashStringHelper *) l_v);
-  display.print(' ');
+  if (tmp_0 < 10) lcd.print(' ');
+  lcd.print(tmp_0);
+  lcd.print('.');
+  if (tmp_1 < 10) lcd.print('0');
+  lcd.print(tmp_1);
+  lcd.print((const __FlashStringHelper *) l_v);
+  lcd.print(' ');
 
   tmp_0 = abs(S25C31.current) / 100;       //current
   tmp_1 = abs(S25C31.current) % 100;
 
-  if (tmp_0 < 10) display.print(' ');
-  display.print(tmp_0);
-  display.print('.');
-  if (tmp_1 < 10) display.print('0');
-  display.print(tmp_1);
-  display.print((const __FlashStringHelper *) l_a);
-  display.print(' ');
-  if (S25C31.remainCapacity < 1000) display.print(' ');
-  if (S25C31.remainCapacity < 100) display.print(' ');
-  if (S25C31.remainCapacity < 10) display.print(' ');
-  display.print(S25C31.remainCapacity);
-  display.print((const __FlashStringHelper *) l_mah);
+  if (tmp_0 < 10) lcd.print(' ');
+  lcd.print(tmp_0);
+  lcd.print('.');
+  if (tmp_1 < 10) lcd.print('0');
+  lcd.print(tmp_1);
+  lcd.print((const __FlashStringHelper *) l_a);
+  lcd.print(' ');
+  if (S25C31.remainCapacity < 1000) lcd.print(' ');
+  if (S25C31.remainCapacity < 100) lcd.print(' ');
+  if (S25C31.remainCapacity < 10) lcd.print(' ');
+  lcd.print(S25C31.remainCapacity);
+  lcd.print((const __FlashStringHelper *) l_mah);
   int temp;
   temp = S25C31.temp1 - 20;
-  display.setCursor(9, 1);
-  display.print((const __FlashStringHelper *) l_t);
-  display.print("1: ");
-  if (temp < 10) display.print(' ');
-  display.print(temp);
-  display.print((char)0x80);
-  display.print("C");
-  display.setCursor(74, 1);
-  display.print((const __FlashStringHelper *) l_t);
-  display.print("2: ");
-  temp = S25C31.temp2 - 20;
-  if (temp < 10) display.print(' ');
-  display.print(temp);
-  display.print((char)0x80);
-  display.print("C");
+  lcd.setCursor(9, 1);
+  lcd.print((const __FlashStringHelper *) l_t);
+  lcd.print("1: ");
+  if (temp < 10) lcd.print(' ');
+  lcd.print(temp);
+  lcd.print((char)0x80);
+  lcd.print("C");
+  lcd.setCursor(74, 1);
 
   int v;
   int * ptr;
@@ -182,29 +156,29 @@ void fsBattInfo() {
   ptr = (int*)&S25C40;
   ptr2 = ptr + 5;
   for (int i = 0; i < 5; i++) {
-    display.setCursor(5, 2 + i);
-    display.print(i);
-    display.print(": ");
+    lcd.setCursor(5, 1);
+    lcd.print(i);
+    lcd.print(": ");
     v = *ptr / 1000;
-    display.print(v);
-    display.print('.');
+    lcd.print(v);
+    lcd.print('.');
     v = *ptr % 1000;
-    if (v < 100) display.print('0');
-    if (v < 10) display.print('0');
-    display.print(v);
-    display.print((const __FlashStringHelper *) l_v);
+    if (v < 100) lcd.print('0');
+    if (v < 10) lcd.print('0');
+    lcd.print(v);
+    lcd.print((const __FlashStringHelper *) l_v);
 
-    display.setCursor(70, 2 + i);
-    display.print(i + 5); 
-    display.print(": ");
+    lcd.setCursor(2 + i, 1);
+    lcd.print(i + 5); 
+    lcd.print(": ");
     v = *ptr2 / 1000;
-    display.print(v);
-    display.print('.');
+    lcd.print(v);
+    lcd.print('.');
     v = *ptr2 % 1000;
-    if (v < 100) display.print('0');
-    if (v < 10) display.print('0');
-    display.print(v);
-    display.print((const __FlashStringHelper *) l_v);
+    if (v < 100) lcd.print('0');
+    if (v < 10) lcd.print('0');
+    lcd.print(v);
+    lcd.print((const __FlashStringHelper *) l_v);
 
     ptr++;
     ptr2++;
@@ -353,92 +327,91 @@ void displayFSM() {
       }
 
       if (displayClear(7)) sMenuPos = 0;
-      display.set1X();
-      display.setCursor(0, 0);
+      lcd.setCursor(0, 0);
 
       if (sMenuPos == 0)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr1);
+      lcd.print((const __FlashStringHelper *) M365CfgScr1);
       if (cfgCruise)
-        display.print((const __FlashStringHelper *) l_On);
+        lcd.print((const __FlashStringHelper *) l_On);
         else
-        display.print((const __FlashStringHelper *) l_Off);
+        lcd.print((const __FlashStringHelper *) l_Off);
 
-      display.setCursor(0, 1);
+      lcd.setCursor(0, 1);
 
       if (sMenuPos == 1)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr2);
+      lcd.print((const __FlashStringHelper *) M365CfgScr2);
 
-      display.setCursor(0, 2);
+      lcd.setCursor(0, 2);
 
       if (sMenuPos == 2)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr3);
+      lcd.print((const __FlashStringHelper *) M365CfgScr3);
       if (cfgTailight)
-        display.print((const __FlashStringHelper *) l_Yes);
+        lcd.print((const __FlashStringHelper *) l_Yes);
         else
-        display.print((const __FlashStringHelper *) l_No);
+        lcd.print((const __FlashStringHelper *) l_No);
 
-      display.setCursor(0, 3);
+      lcd.setCursor(0, 3);
 
       if (sMenuPos == 3)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr4);
+      lcd.print((const __FlashStringHelper *) M365CfgScr4);
 
-      display.setCursor(0, 4);
+      lcd.setCursor(0, 4);
 
       if (sMenuPos == 4)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr5);
+      lcd.print((const __FlashStringHelper *) M365CfgScr5);
       switch (cfgKERS) {
         case 1:
-          display.print((const __FlashStringHelper *) l_Medium);
+          lcd.print((const __FlashStringHelper *) l_Medium);
           break;
         case 2:
-          display.print((const __FlashStringHelper *) l_Strong);
+          lcd.print((const __FlashStringHelper *) l_Strong);
           break;
         default:
-          display.print((const __FlashStringHelper *) l_Weak);
+          lcd.print((const __FlashStringHelper *) l_Weak);
           break;
       }
 
-    display.setCursor(0, 5);
+    lcd.setCursor(0, 5);
 
       if (sMenuPos == 5)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr6);
+      lcd.print((const __FlashStringHelper *) M365CfgScr6);
 
-    display.setCursor(0, 6);
+    lcd.setCursor(0, 1);
     
     if (sMenuPos == 6)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
   
-      display.print((const __FlashStringHelper *) M365CfgScr7);
+      lcd.print((const __FlashStringHelper *) M365CfgScr7);
        if(WheelSize) {
-          display.print((const __FlashStringHelper *) l_10inch);
+          lcd.print((const __FlashStringHelper *) l_10inch);
      }else{
-          display.print((const __FlashStringHelper *) l_85inch);
+          lcd.print((const __FlashStringHelper *) l_85inch);
       }  
       //display.setCursor(0, 7);
 
@@ -447,14 +420,14 @@ void displayFSM() {
         display.print('-');
       }*/
 
-      display.setCursor(0, 7);
+      lcd.setCursor(0, 7);
       
       if (sMenuPos == 7)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) M365CfgScr8);
+      lcd.print((const __FlashStringHelper *) M365CfgScr8);
 
       oldBrakeVal = brakeVal;
       oldThrottleVal = throttleVal;
@@ -472,8 +445,8 @@ void displayFSM() {
 
       fsBattInfo();
 
-      display.setCursor(0, 7);
-      display.print((const __FlashStringHelper *) battScr);
+      lcd.setCursor(0, 7);
+      lcd.print((const __FlashStringHelper *) battScr);
 
       oldBrakeVal = brakeVal;
       oldThrottleVal = throttleVal;
@@ -541,114 +514,37 @@ void displayFSM() {
         timer = millis() + LONG_PRESS;
       }
 
-      displayClear(2);
-
-      display.set1X();
-      display.setCursor(0, 0);
+      lcd.clear();
+      lcd.setCursor(0, 0);
 
       if (menuPos == 0)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) confScr1);
+      lcd.print((const __FlashStringHelper *) confScr1);
       if (autoBig)
-        display.print((const __FlashStringHelper *) l_Yes);
+        lcd.print((const __FlashStringHelper *) l_Yes);
         else
-        display.print((const __FlashStringHelper *) l_No);
+        lcd.print((const __FlashStringHelper *) l_No);
 
-      display.setCursor(0, 1);
+      lcd.setCursor(0, 1);
 
       if (menuPos == 1)
-        display.print((char)0x7E);
+        lcd.print((char)0x7E);
         else
-        display.print(" ");
+        lcd.print(" ");
 
-      display.print((const __FlashStringHelper *) confScr2);
+      lcd.print((const __FlashStringHelper *) confScr2);
       switch (bigMode) {
         case 1:
-          display.print((const __FlashStringHelper *) confScr2b);
+          lcd.print((const __FlashStringHelper *) confScr2b);
           break;
         default:
-          display.print((const __FlashStringHelper *) confScr2a);
+          lcd.print((const __FlashStringHelper *) confScr2a);
       }
 
-      display.setCursor(0, 2);
-
-      if (menuPos == 2)
-        display.print((char)0x7E);
-        else
-        display.print(" ");
-
-      display.print((const __FlashStringHelper *) confScr3);
-      switch (warnBatteryPercent) {
-        case 5:
-          display.print(" 5%");
-          break;
-        case 10:
-          display.print("10%");
-          break;
-        case 15:
-          display.print("15%");
-          break;
-        default:
-          display.print((const __FlashStringHelper *) l_Off);
-          break;
-      }
-
-      display.setCursor(0, 3);
-
-      if (menuPos == 3)
-        display.print((char)0x7E);
-        else
-        display.print(" ");
-
-      display.print((const __FlashStringHelper *) confScr4);
-      if (bigWarn)
-        display.print((const __FlashStringHelper *) l_Yes);
-        else
-        display.print((const __FlashStringHelper *) l_No);
-
-      display.setCursor(0, 4);
-
-      if (menuPos == 4)
-        display.print((char)0x7E);
-        else
-        display.print(" ");
-
-      display.print((const __FlashStringHelper *) confScr5);
-
-      display.setCursor(0, 5);
-
-      if (menuPos == 5)
-        display.print((char)0x7E);
-        else
-        display.print(" ");
-
-      display.print((const __FlashStringHelper *) confScr6);
-
-      display.setCursor(0, 6);
-
-      for (int i = 0; i < 25; i++) {
-        display.setCursor(i * 5, 6);
-        display.print('-');
-      }
-
-      display.setCursor(0, 7);
-
-      if (menuPos == 6)
-        display.print((char)0x7E);
-        else
-        display.print(" ");
-
-      display.print((const __FlashStringHelper *) confScr7);
-
-      display.setCursor(0, 8);
-
-      if (menuPos == 7)
-        display.print((char)0x7E);
-      else
-        display.print(" ");
+      lcd.setCursor(0, 2);
 
       oldBrakeVal = brakeVal;
       oldThrottleVal = throttleVal;
@@ -658,38 +554,33 @@ void displayFSM() {
     if ((throttleVal == 1) && (oldThrottleVal != 1) && (brakeVal == -1) && (oldBrakeVal == -1)) {
       displayClear(3);
 
-      display.set1X();
-      display.setFont(defaultFont);
-      display.setCursor(0, 0);
-      display.print((const __FlashStringHelper *) infoScr1);
-      display.print(':');
-      display.setFont(stdNumb);
-      display.setCursor(15, 1);
+      lcd.setCursor(0, 0);
+      lcd.print((const __FlashStringHelper *) infoScr1);
+      lcd.print(':');
+      lcd.setCursor(15, 1);
       tmp_0 = S23CB0.mileageTotal / 1000;
       tmp_1 = (S23CB0.mileageTotal % 1000) / 10;
-      if (tmp_0 < 1000) display.print(' ');
-      if (tmp_0 < 100) display.print(' ');
-      if (tmp_0 < 10) display.print(' ');
-      display.print(tmp_0);
-      display.print('.');
-      if (tmp_1 < 10) display.print('0');
-      display.print(tmp_1);
-      display.setFont(defaultFont);
-      display.print((const __FlashStringHelper *) l_km);
+      if (tmp_0 < 1000) lcd.print(' ');
+      if (tmp_0 < 100) lcd.print(' ');
+      if (tmp_0 < 10) lcd.print(' ');
+      lcd.print(tmp_0);
+      lcd.print('.');
+      if (tmp_1 < 10) lcd.print('0');
+      lcd.print(tmp_1);
+      lcd.print((const __FlashStringHelper *) l_km);
 
-      display.setCursor(0, 5);
-      display.print((const __FlashStringHelper *) infoScr2);
-      display.print(':');
-      display.setFont(stdNumb);
-      display.setCursor(15, 6);
+      lcd.setCursor(0, 1);
+      lcd.print((const __FlashStringHelper *) infoScr2);
+      lcd.print(':');
+      lcd.setCursor(8, 1);
       tmp_0 = S23C3A.powerOnTime / 60;
       tmp_1 = S23C3A.powerOnTime % 60;
-      if (tmp_0 < 100) display.print(' '); 
-      if (tmp_0 < 10) display.print(' ');
-      display.print(tmp_0);
-      display.print(':');
-      if (tmp_1 < 10) display.print('0');
-      display.print(tmp_1);
+      if (tmp_0 < 100) lcd.print(' '); 
+      if (tmp_0 < 10) lcd.print(' ');
+      lcd.print(tmp_0);
+      lcd.print(':');
+      if (tmp_1 < 10) lcd.print('0');
+      lcd.print(tmp_1);
 
       return;
     }
@@ -700,64 +591,49 @@ void displayFSM() {
 
   if (bigWarn && (((warnBatteryPercent > 0) && (S25C31.remainPercent <= warnBatteryPercent)) && (millis() % 2000 < 700))) {
     if (displayClear(4)) {
-      display.setFont(m365);
-      display.setCursor(0, 0);
-      display.print((char)0x21);
-      display.setFont(defaultFont);
+      lcd.setCursor(0, 0);
+      lcd.print((char)0x21);
     }
   } else
     if ((m365_info.sph > 1) && (autoBig)) {
-      displayClear(5);
-      display.set1X();
+      lcd.clear();
 
       switch (bigMode) {
         case 1:
-          display.setFont(bigNumb);
           tmp_0 = m365_info.curh / 10;
           tmp_1 = m365_info.curh % 10;
-          display.setCursor(2, 0);
+          lcd.setCursor(2, 0);
           if (tmp_0 > 0)
-            display.print(tmp_0);
+            lcd.print(tmp_0);
             else
-            display.print((char)0x3B);
-          display.setCursor(32, 0);
-          display.print(tmp_1);
+            lcd.print((char)0x3B);
+          lcd.setCursor(5, 0);
+          lcd.print(tmp_1);
           tmp_0 = m365_info.curl / 10;
           tmp_1 = m365_info.curl % 10;
-          display.setCursor(75, 0);
-          display.print(tmp_0);
-          display.setCursor(108, 0);
-          display.setFont(stdNumb);
-          display.print(tmp_1);
-          display.setFont(defaultFont);
           if ((S25C31.current >= 0) || ((S25C31.current < 0) && (millis() % 1000 < 500))) {
-            display.set2X();
-            display.setCursor(108, 4);
-            display.print((const __FlashStringHelper *) l_a);
+            lcd.setCursor(13, 0);
+            lcd.print((const __FlashStringHelper *) l_a);
           }
-          display.set1X();
-          display.setCursor(64, 5);
-          display.print((char)0x85);
+          lcd.setCursor(12, 1);
+          lcd.print((char)0x85);
           break;
         default:
-          display.setFont(bigNumb);
           tmp_0 = m365_info.sph / 10;
           tmp_1 = m365_info.sph % 10;
-          display.setCursor(2, 0);
+          lcd.setCursor(0, 0);
           if (tmp_0 > 0)
-            display.print(tmp_0);
+            lcd.print(tmp_0);
             else
-            display.print((char)0x3B);
-          display.setCursor(32, 0);
-          display.print(tmp_1);
-          display.setCursor(75, 0);
-          display.print(m365_info.spl);
-          display.setCursor(106, 0);
-          display.print((char)0x3A);
-          display.setFont(defaultFont);
-          display.set1X();
-          display.setCursor(64, 5);
-          display.print((char)0x85);
+            lcd.print((char)0x3B);
+          lcd.setCursor(3, 0);
+          lcd.print(tmp_1);
+          lcd.setCursor(7, 0);
+          lcd.print(m365_info.spl);
+          lcd.setCursor(0, 1);
+          lcd.print((char)0x3A);
+          lcd.setCursor(64, 5);
+          lcd.print((char)0x85);
       }
       showBatt(S25C31.remainPercent, S25C31.current < 0);
     } else {
@@ -776,58 +652,33 @@ void displayFSM() {
           m365_info.mill = m365_info.mill/1.609;
           m365_info.temp = m365_info.temp*9/5+32;
         #endif
-        display.set1X();
-        display.setFont(stdNumb);
-        display.setCursor(0, 0);
+        lcd.setCursor(0, 0);
 
-        if (m365_info.sph < 10) display.print(' ');
-        display.print(m365_info.sph);
-        display.print('.');
-        display.print(m365_info.spl);
-        display.setFont(defaultFont);
-        display.print((const __FlashStringHelper *) l_kmh);
-        display.setFont(stdNumb);
+        if (m365_info.sph < 10) lcd.print(' ');
+        lcd.print(m365_info.sph);
+        lcd.print('.');
+        lcd.print(m365_info.spl);
+        lcd.print((const __FlashStringHelper *) l_kmh);
 
-        display.setCursor(95, 0);
+        lcd.setCursor(10, 0);
 
-        if (m365_info.temp < 10) display.print(' ');
-        display.print(m365_info.temp);
-        display.setFont(defaultFont);
-        display.print((char)0x80);
-        display.print((const __FlashStringHelper *) l_c);
-        display.setFont(stdNumb);
+        if (m365_info.temp < 10) lcd.print(' ');
+        lcd.print(m365_info.temp);
+        lcd.print((char)0x80);
+        lcd.print((const __FlashStringHelper *) l_c);
 
-        display.setCursor(0, 2);
+        lcd.setCursor(0, 1);
 
-        if (m365_info.milh < 10) display.print(' ');
-        display.print(m365_info.milh);
-        display.print('.');
-        if (m365_info.mill < 10) display.print('0');
-        display.print(m365_info.mill);
-        display.setFont(defaultFont);
-        display.print((const __FlashStringHelper *) l_km);
-        display.setFont(stdNumb);
+        if (m365_info.milh < 10) lcd.print(' ');
+        lcd.print(m365_info.milh);
+        lcd.print('.');
+        if (m365_info.mill < 10) lcd.print('0');
+        lcd.print(m365_info.mill);
+        lcd.print((const __FlashStringHelper *) l_km);
 
-        display.setCursor(0, 4);
-
-        if (m365_info.Min < 10) display.print('0');
-        display.print(m365_info.Min);
-        display.print(':');
-        if (m365_info.Sec < 10) display.print('0');
-        display.print(m365_info.Sec);
-
-        display.setCursor(68, 4);
-
-        if (m365_info.curh < 10) display.print(' ');
-        display.print(m365_info.curh);
-        display.print('.');
-        if (m365_info.curl < 10) display.print('0');
-        display.print(m365_info.curl);
-        display.setFont(defaultFont);
-        display.print((const __FlashStringHelper *) l_a);
       }
 
-      showBatt(S25C31.remainPercent, S25C31.current < 0);
+      //showBatt(S25C31.remainPercent, S25C31.current < 0);
     }
 }
 
